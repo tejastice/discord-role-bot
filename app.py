@@ -16,14 +16,6 @@ REDIRECT_URI = os.getenv('REDIRECT_URI')
 GUILD_ID = int(os.getenv('GUILD_ID', '0'))
 ROLE_ID = int(os.getenv('ROLE_ID', '0'))
 
-# デバッグ用
-print(f"CLIENT_ID: {DISCORD_CLIENT_ID}")
-print(f"REDIRECT_URI: {REDIRECT_URI}")
-print(f"TOKEN exists: {bool(DISCORD_TOKEN)}")
-print(f"SECRET exists: {bool(DISCORD_CLIENT_SECRET)}")
-print(f"GUILD_ID: {GUILD_ID}")
-print(f"ROLE_ID: {ROLE_ID}")
-
 # Discord Bot
 bot = discord.Client(intents=discord.Intents.default())
 app = Flask(__name__)
@@ -42,103 +34,59 @@ def auth():
 
 @app.route('/callback')
 def callback():
-    try:
-        code = request.args.get('code')
-        if not code:
-            return "Failed", 400
-        
-        print(f"Received code: {code[:10]}...")
-        
-        # Get token
-        token_resp = requests.post('https://discord.com/api/oauth2/token', data={
-            'client_id': DISCORD_CLIENT_ID,
-            'client_secret': DISCORD_CLIENT_SECRET,
-            'grant_type': 'authorization_code',
-            'code': code,
-            'redirect_uri': REDIRECT_URI
-        })
-        
-        print(f"Token response status: {token_resp.status_code}")
-        if not token_resp.ok:
-            print(f"Token error: {token_resp.text}")
-            return "Token failed", 400
-        
-        token = token_resp.json()['access_token']
-        print("Token obtained successfully")
-        
-        # Get user
-        user_resp = requests.get('https://discord.com/api/v10/users/@me', 
-                               headers={'Authorization': f'Bearer {token}'})
-        
-        print(f"User response status: {user_resp.status_code}")
-        if not user_resp.ok:
-            print(f"User error: {user_resp.text}")
-            return "User failed", 400
-        
-        user_id = int(user_resp.json()['id'])
-        username = user_resp.json().get('username', 'Unknown')
-        print(f"User: {username} ({user_id})")
-        
-        # Join user to guild using Discord API directly
-        join_resp = requests.put(
-            f'https://discord.com/api/v10/guilds/{GUILD_ID}/members/{user_id}',
-            headers={
-                'Authorization': f'Bot {DISCORD_TOKEN}',
-                'Content-Type': 'application/json'
-            },
-            json={
-                'access_token': token,
-                'roles': [str(ROLE_ID)]  # Add role directly during join
-            }
+    code = request.args.get('code')
+    if not code:
+        return "Authorization failed", 400
+    
+    # Get token
+    token_resp = requests.post('https://discord.com/api/oauth2/token', data={
+        'client_id': DISCORD_CLIENT_ID,
+        'client_secret': DISCORD_CLIENT_SECRET,
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': REDIRECT_URI
+    })
+    
+    if not token_resp.ok:
+        return "Token exchange failed", 400
+    
+    token = token_resp.json()['access_token']
+    
+    # Get user
+    user_resp = requests.get('https://discord.com/api/v10/users/@me', 
+                           headers={'Authorization': f'Bearer {token}'})
+    
+    if not user_resp.ok:
+        return "Failed to get user info", 400
+    
+    user_id = int(user_resp.json()['id'])
+    username = user_resp.json().get('username', 'Unknown')
+    
+    # Join user to guild
+    join_resp = requests.put(
+        f'https://discord.com/api/v10/guilds/{GUILD_ID}/members/{user_id}',
+        headers={'Authorization': f'Bot {DISCORD_TOKEN}'},
+        json={'access_token': token, 'roles': [str(ROLE_ID)]}
+    )
+    
+    if join_resp.status_code in [201, 204]:
+        # Try adding role separately if needed
+        requests.put(
+            f'https://discord.com/api/v10/guilds/{GUILD_ID}/members/{user_id}/roles/{ROLE_ID}',
+            headers={'Authorization': f'Bot {DISCORD_TOKEN}'}
         )
-        print(f"Guild join status: {join_resp.status_code}")
-        print(f"Guild join response: {join_resp.text}")
-        
-        if join_resp.status_code in [201, 204]:
-            # Verify role was actually assigned
-            member_info = requests.get(
-                f'https://discord.com/api/v10/guilds/{GUILD_ID}/members/{user_id}',
-                headers={'Authorization': f'Bot {DISCORD_TOKEN}'}
-            )
-            if member_info.ok:
-                member_data = member_info.json()
-                assigned_roles = member_data.get('roles', [])
-                print(f"User roles after join: {assigned_roles}")
-                if str(ROLE_ID) in assigned_roles:
-                    return f"Success! Welcome {username}! Role assigned successfully."
-                else:
-                    print(f"Role {ROLE_ID} not found in user roles, trying separate assignment")
-                    # Try adding role separately
-                    role_resp = requests.put(
-                        f'https://discord.com/api/v10/guilds/{GUILD_ID}/members/{user_id}/roles/{ROLE_ID}',
-                        headers={'Authorization': f'Bot {DISCORD_TOKEN}'}
-                    )
-                    print(f"Separate role assignment status: {role_resp.status_code}")
-                    print(f"Separate role assignment response: {role_resp.text}")
-                    if role_resp.status_code == 204:
-                        return f"Welcome {username}! Role assigned successfully (separate assignment)."
-                    else:
-                        return f"Joined server but role assignment failed. Error: {role_resp.text}"
-            return f"Joined server but couldn't verify role assignment"
-        elif join_resp.status_code == 200:
-            # User was already in server, add role via API
-            role_resp = requests.put(
-                f'https://discord.com/api/v10/guilds/{GUILD_ID}/members/{user_id}/roles/{ROLE_ID}',
-                headers={'Authorization': f'Bot {DISCORD_TOKEN}'}
-            )
-            print(f"Role assignment status: {role_resp.status_code}")
-            print(f"Role assignment response: {role_resp.text}")
-            if role_resp.status_code == 204:
-                return f"Welcome back {username}! Role assigned successfully."
-            else:
-                return f"Welcome back {username}! But role assignment failed: {role_resp.text}"
-        else:
-            print(f"Join failed with status: {join_resp.status_code}, response: {join_resp.text}")
-            return "Failed to join server", 400
-            
-    except Exception as e:
-        print(f"Callback error: {e}")
-        return f"Error: {str(e)}", 500
+        return f"Welcome {username}! You've joined the server."
+    elif join_resp.status_code == 200:
+        # User already in server, just add role
+        role_resp = requests.put(
+            f'https://discord.com/api/v10/guilds/{GUILD_ID}/members/{user_id}/roles/{ROLE_ID}',
+            headers={'Authorization': f'Bot {DISCORD_TOKEN}'}
+        )
+        if role_resp.status_code == 204:
+            return f"Welcome back {username}! Role assigned."
+        return f"Welcome back {username}!"
+    
+    return "Failed to join server", 400
 
 def start_bot():
     asyncio.run(bot.start(DISCORD_TOKEN))
