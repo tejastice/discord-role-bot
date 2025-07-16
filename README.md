@@ -67,7 +67,6 @@ ROLE_ID=付与するロールID（数字）
 3. 「Bot Permissions」で以下を選択：
    - `Manage Roles`
    - `View Channels`
-   - `Read Messages/View Channels`
 4. 画面下部に生成されたURLをコピー
 
 #### Botをサーバーに招待
