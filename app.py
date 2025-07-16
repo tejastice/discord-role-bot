@@ -92,10 +92,34 @@ def callback():
             }
         )
         print(f"Guild join status: {join_resp.status_code}")
+        print(f"Guild join response: {join_resp.text}")
         
         if join_resp.status_code in [201, 204]:
-            print(f"User {username} joined and role assigned successfully")
-            return f"Success! Welcome {username}! You've been added to the server with your role."
+            # Verify role was actually assigned
+            member_info = requests.get(
+                f'https://discord.com/api/v10/guilds/{GUILD_ID}/members/{user_id}',
+                headers={'Authorization': f'Bot {DISCORD_TOKEN}'}
+            )
+            if member_info.ok:
+                member_data = member_info.json()
+                assigned_roles = member_data.get('roles', [])
+                print(f"User roles after join: {assigned_roles}")
+                if str(ROLE_ID) in assigned_roles:
+                    return f"Success! Welcome {username}! Role assigned successfully."
+                else:
+                    print(f"Role {ROLE_ID} not found in user roles, trying separate assignment")
+                    # Try adding role separately
+                    role_resp = requests.put(
+                        f'https://discord.com/api/v10/guilds/{GUILD_ID}/members/{user_id}/roles/{ROLE_ID}',
+                        headers={'Authorization': f'Bot {DISCORD_TOKEN}'}
+                    )
+                    print(f"Separate role assignment status: {role_resp.status_code}")
+                    print(f"Separate role assignment response: {role_resp.text}")
+                    if role_resp.status_code == 204:
+                        return f"Welcome {username}! Role assigned successfully (separate assignment)."
+                    else:
+                        return f"Joined server but role assignment failed. Error: {role_resp.text}"
+            return f"Joined server but couldn't verify role assignment"
         elif join_resp.status_code == 200:
             # User was already in server, add role via API
             role_resp = requests.put(
@@ -103,10 +127,11 @@ def callback():
                 headers={'Authorization': f'Bot {DISCORD_TOKEN}'}
             )
             print(f"Role assignment status: {role_resp.status_code}")
+            print(f"Role assignment response: {role_resp.text}")
             if role_resp.status_code == 204:
                 return f"Welcome back {username}! Role assigned successfully."
             else:
-                return f"Welcome back {username}! But role assignment failed."
+                return f"Welcome back {username}! But role assignment failed: {role_resp.text}"
         else:
             print(f"Join failed with status: {join_resp.status_code}, response: {join_resp.text}")
             return "Failed to join server", 400
