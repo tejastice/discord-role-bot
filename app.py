@@ -16,6 +16,14 @@ REDIRECT_URI = os.getenv('REDIRECT_URI')
 GUILD_ID = int(os.getenv('GUILD_ID', '0'))
 ROLE_ID = int(os.getenv('ROLE_ID', '0'))
 
+# デバッグ用
+print(f"CLIENT_ID: {DISCORD_CLIENT_ID}")
+print(f"REDIRECT_URI: {REDIRECT_URI}")
+print(f"TOKEN exists: {bool(DISCORD_TOKEN)}")
+print(f"SECRET exists: {bool(DISCORD_CLIENT_SECRET)}")
+print(f"GUILD_ID: {GUILD_ID}")
+print(f"ROLE_ID: {ROLE_ID}")
+
 # Discord Bot
 bot = discord.Client(intents=discord.Intents.default())
 app = Flask(__name__)
