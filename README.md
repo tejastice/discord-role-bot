@@ -19,8 +19,8 @@
 
 #### Bot作成
 1. 左メニューの「Bot」をクリック
-2. 「Add Bot」をクリック
-3. 「Token」をコピーしてメモ（**DISCORD_TOKEN**として使用）
+2. 「Reset Token」をクリック（初回は「Token」欄が表示される）
+3. 「Copy」ボタンをクリックしてトークンをメモ（**DISCORD_TOKEN**として使用）
 4. 「Privileged Gateway Intents」で以下を有効化：
    - Server Members Intent
    - Message Content Intent
