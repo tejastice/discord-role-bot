@@ -38,7 +38,7 @@ def home():
 
 @app.route('/auth')
 def auth():
-    return redirect(f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code&scope=identify")
+    return redirect(f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code&scope=identify%20guilds.join")
 
 @app.route('/callback')
 def callback():
@@ -79,12 +79,25 @@ def callback():
         username = user_resp.json().get('username', 'Unknown')
         print(f"User: {username} ({user_id})")
         
-        # Add role
+        # Join user to guild
         guild = bot.get_guild(GUILD_ID)
         print(f"Guild found: {guild is not None}")
         
+        # Try to add user to guild
+        join_resp = requests.put(
+            f'https://discord.com/api/v10/guilds/{GUILD_ID}/members/{user_id}',
+            headers={'Authorization': f'Bot {DISCORD_TOKEN}'},
+            json={'access_token': token}
+        )
+        print(f"Guild join status: {join_resp.status_code}")
+        
+        # Wait a moment for the join to process
+        import time
+        time.sleep(1)
+        
+        # Check if member is now in guild
         member = guild.get_member(user_id) if guild else None
-        print(f"Member found: {member is not None}")
+        print(f"Member found after join: {member is not None}")
         
         role = guild.get_role(ROLE_ID) if guild else None
         print(f"Role found: {role is not None}")
@@ -95,7 +108,9 @@ def callback():
             return f"Success! Welcome {username}!"
         else:
             print(f"Failed - Guild: {guild}, Member: {member}, Role: {role}")
-            return "User not in server or role not found", 400
+            if join_resp.status_code == 201:
+                return f"Joined server but role assignment failed. Try again in a moment."
+            return "Failed to join server or assign role", 400
             
     except Exception as e:
         print(f"Callback error: {e}")
