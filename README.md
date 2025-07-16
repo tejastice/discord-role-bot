@@ -61,17 +61,21 @@ Railway管理画面で「Variables」タブを開き、以下を設定：
 DISCORD_TOKEN=Bot_から始まるトークン
 DISCORD_CLIENT_ID=アプリケーションのClient ID
 DISCORD_CLIENT_SECRET=OAuth2のClient Secret
-REDIRECT_URI=https://web-production-abcd.up.railway.app/callback
+REDIRECT_URI=あなたの実際のRailway生成URL/callback
 GUILD_ID=サーバーID（数字）
 ROLE_ID=付与するロールID（数字）
 ```
+
+**重要**: `REDIRECT_URI`には必ずRailwayで生成された実際のURLを使用してください（例：`https://web-production-3aa1e.up.railway.app/callback`）
 
 ### 3. Discord OAuth2 設定（Railway URL確定後）
 
 1. Discord Developer Portal → あなたのアプリ → OAuth2 → General
 2. 「Redirects」セクションで「Add Redirect」をクリック
-3. `https://web-production-abcd.up.railway.app/callback` を追加
+3. Railwayで生成された実際のURL + `/callback` を追加（例：`https://web-production-3aa1e.up.railway.app/callback`）
 4. 「Save Changes」をクリック
+
+**重要**: 必ずRailwayで実際に生成されたURLを使用してください。例のURLをそのまま使用しないでください。
 
 ### 4. Botをサーバーに招待
 
