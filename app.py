@@ -13,8 +13,8 @@ DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID')
 DISCORD_CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET')
 REDIRECT_URI = os.getenv('REDIRECT_URI')
-GUILD_ID = int(os.getenv('GUILD_ID'))
-ROLE_ID = int(os.getenv('ROLE_ID'))
+GUILD_ID = int(os.getenv('GUILD_ID', '0'))
+ROLE_ID = int(os.getenv('ROLE_ID', '0'))
 
 # Discord Bot
 bot = discord.Client(intents=discord.Intents.default())
