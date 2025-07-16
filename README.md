@@ -58,17 +58,25 @@ ROLE_ID=付与するロールID（数字）
 3. `https://web-production-abcd.up.railway.app/callback` を追加
 4. 「Save Changes」をクリック
 
-### 4. サーバー設定
+### 4. Botをサーバーに招待
 
-#### Bot権限設定
+#### Bot招待URL生成
 1. Discord Developer Portal → あなたのアプリ → OAuth2 → URL Generator
 2. 「Scopes」で以下を選択：
    - `bot`
-   - `applications.commands`
 3. 「Bot Permissions」で以下を選択：
    - `Manage Roles`
    - `View Channels`
-4. 生成されたURLでBotをサーバーに招待
+   - `Read Messages/View Channels`
+4. 画面下部に生成されたURLをコピー
+
+#### Botをサーバーに招待
+1. 生成されたURLをブラウザで開く
+2. 招待先のサーバーを選択
+3. 「認証」をクリック
+4. Botがサーバーに追加されることを確認
+
+### 5. ロール設定
 
 #### ロール階層確認
 1. Discordサーバー → サーバー設定 → ロール
@@ -80,7 +88,7 @@ ROLE_ID=付与するロールID（数字）
 - **サーバーID**: サーバー名を右クリック → 「サーバーIDをコピー」
 - **ロールID**: ロールを右クリック → 「IDをコピー」
 
-### 5. 再デプロイ
+### 6. 再デプロイ
 
 環境変数設定完了後、Railwayで「Deploy」をクリックして再デプロイ
 
