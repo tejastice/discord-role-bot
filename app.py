@@ -42,42 +42,64 @@ def auth():
 
 @app.route('/callback')
 def callback():
-    code = request.args.get('code')
-    if not code:
-        return "Failed", 400
-    
-    # Get token
-    token_resp = requests.post('https://discord.com/api/oauth2/token', data={
-        'client_id': DISCORD_CLIENT_ID,
-        'client_secret': DISCORD_CLIENT_SECRET,
-        'grant_type': 'authorization_code',
-        'code': code,
-        'redirect_uri': REDIRECT_URI
-    })
-    
-    if not token_resp.ok:
-        return "Token failed", 400
-    
-    token = token_resp.json()['access_token']
-    
-    # Get user
-    user_resp = requests.get('https://discord.com/api/v10/users/@me', 
-                           headers={'Authorization': f'Bearer {token}'})
-    
-    if not user_resp.ok:
-        return "User failed", 400
-    
-    user_id = int(user_resp.json()['id'])
-    
-    # Add role
-    guild = bot.get_guild(GUILD_ID)
-    member = guild.get_member(user_id) if guild else None
-    role = guild.get_role(ROLE_ID) if guild else None
-    
-    if member and role:
-        asyncio.create_task(member.add_roles(role))
-        return "Success!"
-    return "Failed", 500
+    try:
+        code = request.args.get('code')
+        if not code:
+            return "Failed", 400
+        
+        print(f"Received code: {code[:10]}...")
+        
+        # Get token
+        token_resp = requests.post('https://discord.com/api/oauth2/token', data={
+            'client_id': DISCORD_CLIENT_ID,
+            'client_secret': DISCORD_CLIENT_SECRET,
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': REDIRECT_URI
+        })
+        
+        print(f"Token response status: {token_resp.status_code}")
+        if not token_resp.ok:
+            print(f"Token error: {token_resp.text}")
+            return "Token failed", 400
+        
+        token = token_resp.json()['access_token']
+        print("Token obtained successfully")
+        
+        # Get user
+        user_resp = requests.get('https://discord.com/api/v10/users/@me', 
+                               headers={'Authorization': f'Bearer {token}'})
+        
+        print(f"User response status: {user_resp.status_code}")
+        if not user_resp.ok:
+            print(f"User error: {user_resp.text}")
+            return "User failed", 400
+        
+        user_id = int(user_resp.json()['id'])
+        username = user_resp.json().get('username', 'Unknown')
+        print(f"User: {username} ({user_id})")
+        
+        # Add role
+        guild = bot.get_guild(GUILD_ID)
+        print(f"Guild found: {guild is not None}")
+        
+        member = guild.get_member(user_id) if guild else None
+        print(f"Member found: {member is not None}")
+        
+        role = guild.get_role(ROLE_ID) if guild else None
+        print(f"Role found: {role is not None}")
+        
+        if member and role:
+            asyncio.create_task(member.add_roles(role))
+            print(f"Role added to {username}")
+            return f"Success! Welcome {username}!"
+        else:
+            print(f"Failed - Guild: {guild}, Member: {member}, Role: {role}")
+            return "User not in server or role not found", 400
+            
+    except Exception as e:
+        print(f"Callback error: {e}")
+        return f"Error: {str(e)}", 500
 
 def start_bot():
     asyncio.run(bot.start(DISCORD_TOKEN))
