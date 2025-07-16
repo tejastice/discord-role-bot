@@ -79,38 +79,37 @@ def callback():
         username = user_resp.json().get('username', 'Unknown')
         print(f"User: {username} ({user_id})")
         
-        # Join user to guild
-        guild = bot.get_guild(GUILD_ID)
-        print(f"Guild found: {guild is not None}")
-        
-        # Try to add user to guild
+        # Join user to guild using Discord API directly
         join_resp = requests.put(
             f'https://discord.com/api/v10/guilds/{GUILD_ID}/members/{user_id}',
-            headers={'Authorization': f'Bot {DISCORD_TOKEN}'},
-            json={'access_token': token}
+            headers={
+                'Authorization': f'Bot {DISCORD_TOKEN}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'access_token': token,
+                'roles': [str(ROLE_ID)]  # Add role directly during join
+            }
         )
         print(f"Guild join status: {join_resp.status_code}")
         
-        # Wait a moment for the join to process
-        import time
-        time.sleep(1)
-        
-        # Check if member is now in guild
-        member = guild.get_member(user_id) if guild else None
-        print(f"Member found after join: {member is not None}")
-        
-        role = guild.get_role(ROLE_ID) if guild else None
-        print(f"Role found: {role is not None}")
-        
-        if member and role:
-            asyncio.create_task(member.add_roles(role))
-            print(f"Role added to {username}")
-            return f"Success! Welcome {username}!"
+        if join_resp.status_code in [201, 204]:
+            print(f"User {username} joined and role assigned successfully")
+            return f"Success! Welcome {username}! You've been added to the server with your role."
+        elif join_resp.status_code == 200:
+            # User was already in server, add role via API
+            role_resp = requests.put(
+                f'https://discord.com/api/v10/guilds/{GUILD_ID}/members/{user_id}/roles/{ROLE_ID}',
+                headers={'Authorization': f'Bot {DISCORD_TOKEN}'}
+            )
+            print(f"Role assignment status: {role_resp.status_code}")
+            if role_resp.status_code == 204:
+                return f"Welcome back {username}! Role assigned successfully."
+            else:
+                return f"Welcome back {username}! But role assignment failed."
         else:
-            print(f"Failed - Guild: {guild}, Member: {member}, Role: {role}")
-            if join_resp.status_code == 201:
-                return f"Joined server but role assignment failed. Try again in a moment."
-            return "Failed to join server or assign role", 400
+            print(f"Join failed with status: {join_resp.status_code}, response: {join_resp.text}")
+            return "Failed to join server", 400
             
     except Exception as e:
         print(f"Callback error: {e}")
